@@ -1,0 +1,30 @@
+{
+  "name": "save-sabi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Save Sabi production-grade fintech platform monorepo",
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace=@save-sabi/api",
+    "dev:web": "npm run dev --workspace=@save-sabi/web",
+    "dev:ai": "python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001 --app-dir services/ai-orchestrator",
+    "build:api": "npm run build --workspace=@save-sabi/api",
+    "build:web": "npm run build --workspace=@save-sabi/web",
+    "build": "npm run build:api && npm run build:web",
+    "test:api": "npm run test --workspace=@save-sabi/api",
+    "test": "npm run test:api",
+    "lint:api": "npm run lint --workspace=@save-sabi/api",
+    "lint:web": "npm run lint --workspace=@save-sabi/web",
+    "lint": "npm run lint:api && npm run lint:web",
+    "format:check": "npm run format:check --workspace=@save-sabi/api && npm run format:check --workspace=@save-sabi/web",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down -v"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
