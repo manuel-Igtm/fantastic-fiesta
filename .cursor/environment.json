@@ -1,0 +1,41 @@
+{
+  "$schema": "https://cursor.com/schemas/environment.schema.json",
+  "name": "save-sabi-cloud-env",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "bash .cursor/install.sh",
+  "start": "echo \"Cloud environment ready: Node $(node -v), npm $(npm -v), Python $(python3 --version | awk '{print $2}')\"",
+  "ports": [
+    {
+      "name": "api",
+      "port": 3000
+    },
+    {
+      "name": "web",
+      "port": 5173
+    },
+    {
+      "name": "ai-orchestrator",
+      "port": 8001
+    },
+    {
+      "name": "postgres",
+      "port": 5432
+    },
+    {
+      "name": "redis",
+      "port": 6379
+    },
+    {
+      "name": "minio-api",
+      "port": 9000
+    },
+    {
+      "name": "minio-console",
+      "port": 9001
+    }
+  ]
+}
