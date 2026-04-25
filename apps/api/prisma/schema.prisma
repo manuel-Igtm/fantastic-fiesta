@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String        @id @default(uuid()) @db.Uuid
+  phone              String?       @unique
+  email              String?       @unique
+  passwordHash       String
+  role               String        @default("user")
+  preferredLanguage  String        @default("en")
+  status             String        @default("active")
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  profile            Profile?
+  accounts           Account[]
+  savingsRules       SavingsRule[]
+  goals              Goal[]
+  emergencyFund      EmergencyFund?
+  alerts             Alert[]
+  reports            Report[]
+  insights           Insight[]
+  communitiesCreated Community[]   @relation("community_created_by")
+  communityMembers   CommunityMember[]
+  vaultItems         VaultItem[]
+  refreshTokens      RefreshToken[]
+  auditLogs          AuditLog[]
+  idempotencyKeys    IdempotencyKey[]
+}
+
+model Profile {
+  userId                  String  @id @db.Uuid
+  firstName               String?
+  lastName                String?
+  country                 String?
+  currency                String?
+  monthlyBaselineExpense  Decimal? @db.Decimal(14, 2)
+  user                    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                 String         @id @default(uuid()) @db.Uuid
+  userId             String         @db.Uuid
+  providerType       String
+  providerAccountRef String
+  accountName        String
+  accountMask        String?
+  isActive           Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions       Transaction[]
+  goalContributions  GoalContribution[]
+}
+
+model Category {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String
+  parentName  String?
+  isEssential Boolean       @default(false)
+  transactions Transaction[]
+}
+
+model Transaction {
+  id            String    @id @default(uuid()) @db.Uuid
+  accountId     String    @db.Uuid
+  amount        Decimal   @db.Decimal(14, 2)
+  currency      String
+  direction     String
+  categoryId    String?   @db.Uuid
+  merchant      String?
+  occurredAt    DateTime
+  rawPayload    Json?
+  anomalyScore  Float?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  account       Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category      Category? @relation(fields: [categoryId], references: [id])
+}
+
+model SavingsRule {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  ruleType    String
+  configJson  Json
+  status      String   @default("active")
+  nextRunAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Goal {
+  id             String             @id @default(uuid()) @db.Uuid
+  userId         String             @db.Uuid
+  title          String
+  targetAmount   Decimal            @db.Decimal(14, 2)
+  currentAmount  Decimal            @default(0) @db.Decimal(14, 2)
+  dueDate        DateTime
+  priority       Int
+  imageUrl       String?
+  status         String             @default("active")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions  GoalContribution[]
+}
+
+model GoalContribution {
+  id              String    @id @default(uuid()) @db.Uuid
+  goalId          String    @db.Uuid
+  sourceAccountId String?   @db.Uuid
+  amount          Decimal   @db.Decimal(14, 2)
+  method          String
+  contributedAt   DateTime  @default(now())
+  goal            Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  sourceAccount   Account?  @relation(fields: [sourceAccountId], references: [id])
+}
+
+model EmergencyFund {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @unique @db.Uuid
+  targetMonths  Int
+  targetAmount  Decimal  @db.Decimal(14, 2)
+  currentAmount Decimal  @default(0) @db.Decimal(14, 2)
+  healthStatus  String
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Insight {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  insightType  String
+  title        String
+  body         String
+  confidence   Float
+  generatedAt  DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Alert {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  alertType   String
+  severity    String
+  message     String
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Community {
+  id            String            @id @default(uuid()) @db.Uuid
+  name          String
+  createdBy     String            @db.Uuid
+  challengeType String
+  startDate     DateTime
+  endDate       DateTime
+  creator       User              @relation("community_created_by", fields: [createdBy], references: [id], onDelete: Cascade)
+  members       CommunityMember[]
+}
+
+model CommunityMember {
+  communityId  String   @db.Uuid
+  userId       String   @db.Uuid
+  streakCount  Int      @default(0)
+  lastCheckIn  DateTime?
+  community    Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([communityId, userId])
+}
+
+model VaultItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @db.Uuid
+  itemType          String
+  encryptedBlobRef  String
+  metadataJson      Json?
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  reportType  String
+  periodStart DateTime
+  periodEnd   DateTime
+  fileRef     String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String?  @db.Uuid
+  action      String
+  objectType  String
+  objectId    String?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  actor       User?    @relation(fields: [actorUserId], references: [id])
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  sessionId  String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model IdempotencyKey {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  key          String
+  route        String
+  requestHash  String
+  responseJson Json?
+  statusCode   Int?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key, route])
+}
