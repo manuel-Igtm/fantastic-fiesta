@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: save-sabi-web
+  labels:
+    app: save-sabi-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: save-sabi-web
+  template:
+    metadata:
+      labels:
+        app: save-sabi-web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/save-sabi/web:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4173
+          env:
+            - name: VITE_API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: save-sabi-web-config
+                  key: vite-api-base-url
+            - name: VITE_AI_ORCHESTRATOR_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: save-sabi-web-config
+                  key: vite-ai-orchestrator-url
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: save-sabi-web
+spec:
+  selector:
+    app: save-sabi-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 4173
+  type: ClusterIP

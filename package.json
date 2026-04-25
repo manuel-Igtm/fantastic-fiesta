@@ -21,7 +21,9 @@
     "lint:web": "npm run lint --workspace=@save-sabi/web",
     "lint": "npm run lint:api && npm run lint:web",
     "format:check": "npm run format:check --workspace=@save-sabi/api && npm run format:check --workspace=@save-sabi/web",
-    "docker:up": "docker compose up -d --build",
+    "docker:up": "docker compose --profile app up -d --build",
+    "docker:infra:up": "docker compose up -d postgres redis minio",
+    "docker:build": "docker compose --profile app build",
     "docker:down": "docker compose down -v"
   },
   "engines": {

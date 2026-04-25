@@ -1,6 +1,59 @@
 version: "3.9"
 
 services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: development
+      API_PORT: 3000
+      DATABASE_URL: postgres://save_sabi:save_sabi_dev@postgres:5432/save_sabi
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: dev-access-secret
+      JWT_REFRESH_SECRET: dev-refresh-secret
+      JWT_ACCESS_TTL: 900
+      JWT_REFRESH_TTL: 2592000
+      TOKENIZATION_SECRET: dev-tokenization-secret
+      CALLBACK_SIGNING_SECRET: dev-callback-signing-secret
+      PARTNER_CALLBACK_SECRET: dev-partner-callback-secret
+      IDEMPOTENCY_KEY_TTL_SECONDS: 86400
+      AI_ORCHESTRATOR_URL: http://ai-orchestrator:8001
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:3000/v1
+        VITE_AI_ORCHESTRATOR_URL: http://localhost:8001
+    depends_on:
+      api:
+        condition: service_started
+      ai-orchestrator:
+        condition: service_started
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+  ai-orchestrator:
+    build:
+      context: .
+      dockerfile: services/ai-orchestrator/Dockerfile
+    environment:
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
   postgres:
     image: postgres:16
     restart: unless-stopped
@@ -12,6 +65,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U save_sabi -d save_sabi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
