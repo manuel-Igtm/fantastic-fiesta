@@ -22,6 +22,25 @@ class EnvironmentVariables {
   @IsString()
   JWT_REFRESH_SECRET!: string;
 
+  @IsInt()
+  @Min(60)
+  JWT_ACCESS_TTL!: number;
+
+  @IsInt()
+  @Min(300)
+  JWT_REFRESH_TTL!: number;
+
+  @IsString()
+  TOKENIZATION_SECRET!: string;
+
+  @IsInt()
+  @Min(60)
+  IDEMPOTENCY_KEY_TTL_SECONDS!: number;
+
+  @IsOptional()
+  @IsString()
+  PARTNER_CALLBACK_SECRET?: string;
+
   @IsString()
   AI_ORCHESTRATOR_URL!: string;
 }
