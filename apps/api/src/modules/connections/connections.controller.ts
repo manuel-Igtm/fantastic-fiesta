@@ -1,8 +1,6 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Public } from '../../common/decorators/public.decorator';
 import { PartnerSignatureGuard } from '../../common/guards/partner-signature.guard';
 import { AuthenticatedUser } from '../../common/types/authenticated-request.interface';
 
@@ -20,14 +18,9 @@ export class ConnectionsController {
   }
 
   @Post('callback')
-  @Public()
   @UseGuards(PartnerSignatureGuard)
-  callback(@Req() req: Request, @Body() payload: CallbackConnectionDto) {
-    const userId = req.headers['x-user-id'];
-    if (typeof userId !== 'string' || userId.length === 0) {
-      throw new Error('Missing x-user-id header for callback');
-    }
-    return this.connectionsService.callbackConnection(userId, payload);
+  callback(@CurrentUser() user: AuthenticatedUser, @Body() payload: CallbackConnectionDto) {
+    return this.connectionsService.callbackConnection(user.id, payload);
   }
 
   @Get()
