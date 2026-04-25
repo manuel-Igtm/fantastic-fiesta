@@ -6,6 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { compare, hash } from 'bcryptjs';
 
+import { hashSha256, safeEqualHex } from '../../common/utils/security.util';
 import { PrismaService } from '../database/prisma.service';
 
 import { LoginDto } from './dto/login.dto';
@@ -76,8 +77,8 @@ export class AuthService {
     return this.issueTokenPair(user, context);
   }
 
-  async refresh(dto: RefreshDto) {
-    const tokenHash = await hash(dto.refreshToken, 4);
+  async refresh(dto: RefreshDto, context?: AuthContext) {
+    const tokenHash = hashSha256(dto.refreshToken);
     const tokenRecord = await this.prisma.refreshToken.findFirst({
       where: {
         tokenHash,
@@ -93,17 +94,33 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token is invalid or expired');
     }
 
+    if (context?.ip && tokenRecord.ipAddress && !safeEqualHex(hashSha256(context.ip), tokenRecord.ipAddress)) {
+      throw new UnauthorizedException('Refresh token context mismatch');
+    }
+
+    if (
+      context?.userAgent &&
+      tokenRecord.userAgent &&
+      !safeEqualHex(hashSha256(context.userAgent), tokenRecord.userAgent)
+    ) {
+      throw new UnauthorizedException('Refresh token context mismatch');
+    }
+
     await this.prisma.refreshToken.update({
       where: { id: tokenRecord.id },
       data: { revokedAt: new Date() }
     });
 
-    return this.issueTokenPair(tokenRecord.user);
+    return this.issueTokenPair(tokenRecord.user, context);
   }
 
-  async logout(userId: string) {
+  async logout(userId: string, sessionId?: string) {
     await this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
+      where: {
+        userId,
+        revokedAt: null,
+        ...(sessionId ? { sessionId } : {})
+      },
       data: { revokedAt: new Date() }
     });
   }
@@ -134,14 +151,14 @@ export class AuthService {
 
     const refreshTokenRaw = randomBytes(48).toString('hex');
     const refreshTokenJwt = await this.jwtService.signAsync(
-      { ...payload, nonce: refreshTokenRaw },
+      { ...payload, nonce: refreshTokenRaw, sessionId },
       {
         secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
         expiresIn: Number(this.configService.getOrThrow<string>('JWT_REFRESH_TTL'))
       }
     );
 
-    const tokenHash = await hash(refreshTokenJwt, 4);
+    const tokenHash = hashSha256(refreshTokenJwt);
     const expiresAt = new Date(
       Date.now() + Number(this.configService.getOrThrow<string>('JWT_REFRESH_TTL')) * 1000
     );
@@ -152,8 +169,8 @@ export class AuthService {
         tokenHash,
         expiresAt,
         sessionId,
-        ipAddress: context?.ip ?? null,
-        userAgent: context?.userAgent ?? null
+        ipAddress: context?.ip ? hashSha256(context.ip) : null,
+        userAgent: context?.userAgent ? hashSha256(context.userAgent) : null
       }
     });
 

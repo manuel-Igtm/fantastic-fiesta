@@ -38,6 +38,17 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const STORAGE_KEY = 'save-sabi-auth';
 
+function normalizeLanguage(language: string): SupportedLanguage {
+  return language === 'sw' ? 'sw' : 'en';
+}
+
+function normalizeMeResponse(response: ApiMeResponse): ApiMeResponse {
+  return {
+    ...response,
+    preferredLanguage: normalizeLanguage(response.preferredLanguage)
+  };
+}
+
 type StoredAuthState = {
   accessToken: string;
   refreshToken: string;
@@ -93,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const profile = await api.me();
-      setMe(profile);
+      setMe(normalizeMeResponse(profile));
       return;
     } catch (error) {
       if (!(error instanceof Error) || !refreshToken) {
@@ -107,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshToken: refreshed.refreshToken
     });
     const nextProfile = await new SaveSabiApi(() => refreshed.accessToken).me();
-    setMe(nextProfile);
+    setMe(normalizeMeResponse(nextProfile));
   }, [accessToken, api, refreshToken, setTokens]);
 
   const login = useCallback(
@@ -118,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshToken: response.refreshToken
       });
       const nextProfile = await new SaveSabiApi(() => response.accessToken).me();
-      setMe(nextProfile);
+      setMe(normalizeMeResponse(nextProfile));
     },
     [setTokens]
   );
@@ -131,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshToken: response.refreshToken
       });
       const nextProfile = await new SaveSabiApi(() => response.accessToken).me();
-      setMe(nextProfile);
+      setMe(normalizeMeResponse(nextProfile));
     },
     [setTokens]
   );
@@ -160,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       monthlyBaselineExpense?: number;
     }) => {
       const updated = await api.updateMe(payload);
-      setMe(updated);
+      setMe(normalizeMeResponse(updated));
     },
     [api]
   );
@@ -168,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateLanguage = useCallback(
     async (preferredLanguage: SupportedLanguage) => {
       const updated = await api.updateLanguage(preferredLanguage);
-      setMe(updated);
+      setMe(normalizeMeResponse(updated));
     },
     [api]
   );

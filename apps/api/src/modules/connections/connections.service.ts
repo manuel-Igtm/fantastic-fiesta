@@ -1,12 +1,17 @@
 import { randomUUID } from 'crypto';
 
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+import { tokenizeValue } from '../../common/utils/security.util';
 import { PrismaService } from '../database/prisma.service';
 
 @Injectable()
 export class ConnectionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService
+  ) {}
 
   async initiateConnection(userId: string, payload: { providerType: string; accountName: string }) {
     // Provider URL should be generated from integration adapters in production.
@@ -26,7 +31,8 @@ export class ConnectionsService {
       accountMask?: string;
     },
   ) {
-    const tokenizedRef = `tok_${Buffer.from(payload.providerAccountRef).toString('base64url')}`;
+    const tokenizationSecret = this.configService.getOrThrow<string>('TOKENIZATION_SECRET');
+    const tokenizedRef = tokenizeValue(payload.providerAccountRef, tokenizationSecret);
 
     return this.prisma.account.create({
       data: {
@@ -81,7 +87,8 @@ export class ConnectionsService {
       throw new NotFoundException('Connection not found');
     }
 
-    const tokenizedRef = `tok_${Buffer.from(payload.externalAccountRef).toString('base64url')}`;
+    const tokenizationSecret = this.configService.getOrThrow<string>('TOKENIZATION_SECRET');
+    const tokenizedRef = tokenizeValue(payload.externalAccountRef, tokenizationSecret);
 
     return this.prisma.account.update({
       where: { id: payload.connectionId },

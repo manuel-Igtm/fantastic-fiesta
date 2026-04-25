@@ -33,6 +33,9 @@ class EnvironmentVariables {
   @IsString()
   TOKENIZATION_SECRET!: string;
 
+  @IsString()
+  CALLBACK_SIGNING_SECRET!: string;
+
   @IsInt()
   @Min(60)
   IDEMPOTENCY_KEY_TTL_SECONDS!: number;

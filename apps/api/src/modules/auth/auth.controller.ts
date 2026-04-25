@@ -1,4 +1,5 @@
-import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
+import type { Request } from 'express';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -15,28 +16,37 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  register(@Body() dto: RegisterDto, @Req() req: Request) {
+    return this.authService.register(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
   }
 
   @Public()
   @HttpCode(200)
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  login(@Body() dto: LoginDto, @Req() req: Request) {
+    return this.authService.login(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
   }
 
   @Public()
   @HttpCode(200)
   @Post('refresh')
-  refresh(@Body() dto: RefreshDto) {
-    return this.authService.refresh(dto);
+  refresh(@Body() dto: RefreshDto, @Req() req: Request) {
+    return this.authService.refresh(dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
   }
 
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
   @Post('logout')
-  logout(@CurrentUser('id') userId: string) {
-    return this.authService.logout(userId);
+  logout(@CurrentUser('id') userId: string, @CurrentUser('sessionId') sessionId?: string) {
+    return this.authService.logout(userId, sessionId);
   }
 }

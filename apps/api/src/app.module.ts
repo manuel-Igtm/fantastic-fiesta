@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { validateEnv } from './common/config/env.validation';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { PartnerSignatureGuard } from './common/guards/partner-signature.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { AlertsModule } from './modules/alerts/alerts.module';
@@ -45,6 +46,7 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
   ],
   providers: [
+    PartnerSignatureGuard,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard
