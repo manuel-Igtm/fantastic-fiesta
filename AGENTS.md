@@ -12,11 +12,30 @@
 ## Environment Boot Expectations
 
 Environment bootstrap is defined in `.cursor/environment.json`:
-- Uses `.cursor/Dockerfile` to ensure Node + Python runtimes exist.
+- Uses `.cursor/Dockerfile` to preinstall:
+  - Node + npm
+  - Python + pip + venv
+  - Docker CLI + compose plugin
+  - PostgreSQL + Redis
 - Runs idempotent install steps:
   - `npm install`
   - Python virtualenv setup in `.venv`
   - `pip install -r services/ai-orchestrator/requirements.txt`
+  - executable helper scripts in `.cursor/scripts`
+
+## Non-systemd Startup Helpers
+
+Use these scripts when the environment does not support `systemd`:
+
+- `.cursor/scripts/start-docker.sh` - starts Docker daemon via tmux fallback and validates connectivity
+- `.cursor/scripts/start-postgres.sh` - starts PostgreSQL via `service` and checks readiness
+- `.cursor/scripts/start-redis.sh` - starts Redis via `service` and checks readiness
+- `.cursor/scripts/start-infra.sh` - orchestrates Docker/Postgres/Redis startup and DB bootstrap
+- `.cursor/scripts/bootstrap-db.sh` - ensures `save_sabi` role/database exist and runs `prisma db push`
+- `.cursor/scripts/start-api-prod.sh` - runs API in production env
+- `.cursor/scripts/start-ai-prod.sh` - runs AI orchestrator in production mode
+- `.cursor/scripts/start-web-prod.sh` - serves the built web app on port `5173`
+- `.cursor/scripts/start-apps-prod.sh` - starts API + AI + web in tmux sessions
 
 ## Common Commands
 
@@ -38,5 +57,7 @@ Environment bootstrap is defined in `.cursor/environment.json`:
 
 ## Notes
 
-- For integration tests or local end-to-end flows that require infra dependencies, run `npm run docker:up` before starting app services.
+- For integration tests or local end-to-end flows that require infra dependencies:
+  - prefer `npm run docker:up` when Docker works in the runtime
+  - otherwise use `.cursor/scripts/start-infra.sh` and then `.cursor/scripts/start-apps-prod.sh`
 - Keep install steps idempotent and avoid embedding secrets in repository files.

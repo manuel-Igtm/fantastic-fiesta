@@ -7,7 +7,7 @@
     "context": ".."
   },
   "install": "bash .cursor/install.sh",
-  "start": "echo \"Cloud environment ready: Node $(node -v), npm $(npm -v), Python $(python3 --version | awk '{print $2}')\"",
+  "start": "bash .cursor/scripts/start-infra.sh && echo \"Cloud environment ready: Node $(node -v), npm $(npm -v), Python $(python3 --version | awk '{print $2}')\"",
   "ports": [
     {
       "name": "api",
